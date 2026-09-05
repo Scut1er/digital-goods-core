@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+      POSTGRES_DB: shop
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://shop:shop@db:5432/shop
+      PORT: 3000
+      PROVIDER_A_FAIL_RATE: "0.3"
+      PROVIDER_A_TIMEOUT_RATE: "0.2"
+      PROVIDER_B_FAIL_RATE: "0.2"
+      PROVIDER_B_TIMEOUT_RATE: "0.1"
+      PROVIDER_TIMEOUT_MS: "1500"
+      PROVIDER_MAX_RETRIES: "3"
+      WORKER_POLL_MS: "2000"
+      LOG_LEVEL: info
+      RUN_WORKER: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
